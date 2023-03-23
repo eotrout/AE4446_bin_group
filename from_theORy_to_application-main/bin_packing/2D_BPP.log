@@ -1,0 +1,58 @@
+
+Gurobi 9.5.2 (mac64[arm]) logging started Thu Mar 23 22:30:55 2023
+
+Set parameter LogFile to value "2D_BPP.log"
+Gurobi Optimizer version 9.5.2 build v9.5.2rc0 (mac64[arm])
+Thread count: 8 physical cores, 8 logical processors, using up to 8 threads
+Optimize a model with 900 rows, 288 columns and 4347 nonzeros
+Model fingerprint: 0x31928210
+Variable types: 18 continuous, 270 integer (270 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 2e+01]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [1e+00, 2e+01]
+  RHS range        [1e+00, 3e+01]
+Found heuristic solution: objective 9.0000000
+Presolve removed 36 rows and 29 columns
+Presolve time: 0.01s
+Presolved: 864 rows, 259 columns, 4059 nonzeros
+Variable types: 18 continuous, 241 integer (241 binary)
+
+Root relaxation: objective 1.000000e+00, 241 iterations, 0.00 seconds (0.00 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0    1.00000    0    8    9.00000    1.00000  88.9%     -    0s
+H    0     0                       2.0000000    1.00000  50.0%     -    0s
+     0     0    1.00000    0   25    2.00000    1.00000  50.0%     -    0s
+     0     0    1.00000    0    4    2.00000    1.00000  50.0%     -    0s
+     0     0    1.00000    0    2    2.00000    1.00000  50.0%     -    0s
+     0     0    1.00000    0   10    2.00000    1.00000  50.0%     -    0s
+     0     0    1.00000    0    8    2.00000    1.00000  50.0%     -    0s
+     0     0    1.00000    0    9    2.00000    1.00000  50.0%     -    0s
+     0     0    1.00000    0    9    2.00000    1.00000  50.0%     -    0s
+     0     0    1.00000    0    2    2.00000    1.00000  50.0%     -    0s
+     0     0    1.00000    0    2    2.00000    1.00000  50.0%     -    0s
+     0     0    1.00000    0    2    2.00000    1.00000  50.0%     -    0s
+     0     0    1.00000    0    2    2.00000    1.00000  50.0%     -    0s
+     0     2    1.00000    0    2    2.00000    1.00000  50.0%     -    0s
+* 2102   645              19       1.0000000    1.00000  0.00%   7.1    0s
+
+Cutting planes:
+  Learned: 7
+  Gomory: 1
+  Cover: 142
+  Implied bound: 76
+  MIR: 15
+  StrongCG: 1
+  Inf proof: 11
+  Relax-and-lift: 3
+
+Explored 2614 nodes (20965 simplex iterations) in 0.19 seconds (0.17 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 3: 1 2 9 
+
+Optimal solution found (tolerance 1.00e-03)
+Best objective 1.000000000000e+00, best bound 1.000000000000e+00, gap 0.0000%
