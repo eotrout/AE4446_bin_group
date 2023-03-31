@@ -19,6 +19,7 @@ model = Model('2D Bin Packing Optimization')
 
 # %% ---- Sets ----
 I = list(range(len(R_pickle)))
+I = list(range(12))
 B = list(range(len(B_pickle)))
 
 
@@ -39,6 +40,8 @@ bin_slope = [value[1][4] for key, value in B_pickle.items()]
 bin_intercept = [value[1][5] for key, value in B_pickle.items()]
 
 
+# big M
+M = 100000
 
 # %% ---- Variables ----
 # p_{ib} variable, 1 if box i is in container b, 0 otherwise
@@ -67,19 +70,17 @@ for i in I:
 # r_{i, L^, L} variable, 1 if the original item i is aligned with the length side of the bin
 r = {}
 for i in I:
-     r[i] = model.addVar(vtype = GRB.BINARY, name = 'r[' + str(b) + ']' )
+     r[i] = model.addVar(vtype = GRB.BINARY, name = 'r[' + str(i) + ']' )
 
 # x_{i} variable, x coordiante of lower_left corner of item i, with respect to origin of bin b
 x = {}
 for i in I:
-     for b in B:
-          x[i,b] = model.addVar(vtype = GRB.INTEGER, name = 'x[' + str(i) + ',' + str(b) + ']'  )
+     x[i] = model.addVar(vtype = GRB.INTEGER, name = 'x[' + str(i) + ']' )
 
 # y_{i} variable, y coordiante of lower_left corner of item i, with respect to origin of bin b
 y = {}
 for i in I:
-     for b in B:
-          y[i,b] = model.addVar(vtype = GRB.INTEGER, name = 'y[' + str(i) + ',' + str(b) + ']'  )
+     y[i] = model.addVar(vtype = GRB.INTEGER, name = 'y[' + str(i) + ']'  )
 
 # g_{i} variable, 1 if item i lies on the ground of the bin it is assigned to
 g = {}
@@ -107,6 +108,59 @@ model.setObjective (quicksum(bin_cost[b] * z[b] for b in B))
 model.modelSense = GRB.MINIMIZE
 model.update ()
 
+# Constraint 2: Ensures that there is a value for the l and u constraints if two items are in the same box 
+con2 = {}
+for i in I:
+     for j in I:
+          for b in B:
+               if i != j:
+                    con2[i,j,b] = model.addConstr(l[i,j] + l[j,i] + u[i,j] + u[j,i] >= (p[i,b] + p[j,b] -1), 'con2[' + str(i) + ', ' + str(j) + ', ' + str(b) + ']-')     
+
+# Constraint 3: Mutual positioning along the x axis 1
+con3 = {}
+for i in I:
+     for j in I:
+          for b in B:
+               if i != j:
+                    con3[i,j,b] = model.addConstr(x[j] >= x[i] + item_length[i] * r[i] + item_height[i] * (1- r[i]) - M * (1- l[i,j]), 'con3[' + str(i) + ', ' + str(j) + ', ' + str(b) + ']-')   
+
+# Constraint 4: Mutual positioning along the x axis 2
+con4 = {}
+for i in I:
+     for j in I:
+          for b in B:
+               if i != j:
+                    con4[i,j,b] = model.addConstr(x[j] <= x[i] + item_length[i] * r[i] + item_height[i] * (1- r[i]) + M * l[i,j], 'con4[' + str(i) + ', ' + str(j) + ', ' + str(b) + ']-')   
+
+                   
+# Constraint 5: Mutual positioning along the y axis 1
+con5 = {}
+for i in I:
+     for j in I:
+          for b in B:
+               if i != j:
+                    con5[i,j,b] = model.addConstr(y[j] >= y[i] + item_length[i] * (1- r[i]) + item_height[i] * r[i] - M * (1- u[i,j]), 'con5[' + str(i) + ', ' + str(j) + ', ' + str(b) + ']-')   
+
+# Constraint 6: Mutual positioning along the y axis 2
+con6 = {}
+for i in I:
+     for j in I:
+          for b in B:
+               if i != j:
+                    con6[i,j,b] = model.addConstr(y[j] <= y[i] + item_length[i] * (1- r[i]) + item_height[i] * r[i] + M * u[i,j], 'con6[' + str(i) + ', ' + str(j) + ', ' + str(b) + ']-')   
+
+# Constraint 7: Ensure that the lower-right vertex of item i is contained within bin b.
+con7 = {}
+for i in I:
+     for b in B:
+          con7[i,b] = model.addConstr(x[i] + item_length[i] * r[i] + item_height[i] * (1- r[i]) <= quicksum(bin_length[b] * p[i,b] for b in B), 'con7[' + str(i) + ', ' + str(b) + ']-')  
+
+# Constraint 8: Ensure that the upper-right vertex of item i is contained within bin b.
+con8 = {}
+for i in I:
+     for b in B:
+          con8[i,b] = model.addConstr(y[i] + item_length[i] * (1- r[i]) + item_height[i] * r[i] <= quicksum(bin_height[b] * p[i,b] for b in B), 'con8[' + str(i) + ', ' + str(b) + ']-')  
+
 # Constraint 11: item assignment to bin
 con11 = {}
 for i in I:
@@ -117,29 +171,28 @@ con12 = {}
 for i in I:
      for b in B:
          con12[i,b] = model.addConstr(z[b] >= p[i,b], 'con12[' + str(i) + ', ' + str(b) + ']-'    )     
-          
-
-
-
 
 
 # %%  ---- Solve ----
 model.setParam( 'OutputFlag', True) # silencing gurobi output or not
 model.setParam ('MIPGap', 0);       # find the optimal solution
+#model.setParam('TimeLimit', 180)  # TimeLimit of three minutes
 model.write("output.lp")            # print the model in .lp format file
 model.optimize ()
 
 if model.status == GRB.Status.OPTIMAL: # If optimal solution is found
-    print ('Solution found, minimal costs: ' + '%10.3f' % model.objVal + ' euros'  )  
+    print ('Optimal olution found, minimal costs: ' + '%10.3f' % model.objVal + ' euros'  )  
+    print ('')
+elif model.status == GRB.TIME_LIMIT:
+    print ('Time Limit solution found, minimal costs: ' + '%10.3f' % model.objVal + ' euros'  )  
     print ('')
 else:
     print ('\nNo feasible solution found')
 
 
-
 # %%
 
-if model.status == GRB.Status.OPTIMAL: # If optimal solution is found
+if model.status == GRB.Status.OPTIMAL: # If solution is found
     # Define a list of colors for the small rectangles
     colors = plt.cm.viridis(np.linspace(0, 1, len(I)))
     for b in B:
@@ -158,12 +211,12 @@ if model.status == GRB.Status.OPTIMAL: # If optimal solution is found
             for i in I:
                 if p[i,b].x == 1.0:
                     # Set the width and height of the item
-                    i_length = item_length[i]
-                    i_height = item_height[i]
+                    i_length = item_length[i] * r[i].x + item_height[i] * (1- r[i].x)  
+                    i_height = item_height[i] * r[i].x + item_length[i] * (1- r[i].x)  
 
                     # Set x and y coordinates of bottom left corner
-                    x_pos = np.random.uniform(0, b_length - i_length) # x[i].x
-                    y_pos = np.random.uniform(0, b_height - i_height) # y[i].x
+                    x_pos = x[i].x
+                    y_pos = y[i].x
 
                     # Add a rectangle to the axis
                     rect_item = plt.Rectangle((x_pos, y_pos), i_length, i_height, linewidth=1, edgecolor='black', facecolor=colors[i])
@@ -181,4 +234,15 @@ if model.status == GRB.Status.OPTIMAL: # If optimal solution is found
             plt.show()               
                         
 
+# %%
+if False:
+     for b in B:
+          for i in I:
+               for j in I:       
+                    if i != j:
+                         print(b, i, j)
+                         print(l[i,j].x, l[i,j].x)
+                         print(u[i,j].x, u[j,i].x)
+                         print(p[i,b].x, p[j,b].x)
+                         print()
 # %%
