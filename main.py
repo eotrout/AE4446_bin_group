@@ -19,7 +19,7 @@ model = Model('2D Bin Packing Optimization')
 
 # %% ---- Sets ----
 I = list(range(len(R_pickle)))
-I = list(range(12))
+#I = list(range(12))
 B = list(range(len(B_pickle)))
 
 
@@ -176,7 +176,7 @@ for i in I:
 # %%  ---- Solve ----
 model.setParam( 'OutputFlag', True) # silencing gurobi output or not
 model.setParam ('MIPGap', 0);       # find the optimal solution
-#model.setParam('TimeLimit', 180)  # TimeLimit of three minutes
+model.setParam('TimeLimit', 300)  # TimeLimit of five minutes
 model.write("output.lp")            # print the model in .lp format file
 model.optimize ()
 
@@ -192,7 +192,7 @@ else:
 
 # %%
 
-if model.status == GRB.Status.OPTIMAL: # If solution is found
+if model.status == GRB.Status.OPTIMAL or model.status == GRB.Status.TIME_LIMIT: # If solution is found
     # Define a list of colors for the small rectangles
     colors = plt.cm.viridis(np.linspace(0, 1, len(I)))
     for b in B:
