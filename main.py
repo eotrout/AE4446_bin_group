@@ -18,8 +18,8 @@ with open('data/B.pickle', 'rb') as handle:
 model = Model('2D Bin Packing Optimization')
 
 # %% ---- Sets ----
-I = list(range(len(R_pickle)))
-#I = list(range(12))
+#I = list(range(len(R_pickle)))
+I = list(range(6))
 B = list(range(len(B_pickle)))
 
 
@@ -173,6 +173,61 @@ for i in I:
          con12[i,b] = model.addConstr(z[b] >= p[i,b], 'con12[' + str(i) + ', ' + str(b) + ']-'    )     
 
 
+# Constraint 13: Incompatible combination constraint
+
+
+# Constraint 14: Support constraint
+con14 = {}
+for i in I:
+     con14[i] = model.addConstr(quicksum(b1[i,j] + b2[i,j] + 2*g[i] for j in I if i != j )== 2, 'con14[' + str(i) + ']-'    )
+
+# Constraint 15: Gravity constraint
+con15 = {}
+for i in I:
+     con15[i] = model.addConstr(y[i] <= M * (1- g[i]),  'con15[' + str(i) + ']-'     )
+
+
+
+
+
+
+
+'''
+# Constraint 16
+con16 = {}
+for i in I:
+     for j in I:
+          if i != j:
+               con16[i,j] = model.addConstr(y[i] <= y[j] + item_height[j] * r[j] + item_length[j] * (1- r[j]) + M * (1-b1[i,j]), 'con16[' + str(i) + ', ' + str(j) + ']-'    )     
+
+# Constraint 17: Vertex one supported by box below
+con17 = {}
+for i in I:
+     for j in I:
+          if i != j:
+               con17[i,j] = model.addConstr(x[i] >= x[j] * b1[i,j], 'con17[' + str(i) + ', ' + str(j) + ']-')   
+
+# Constraint 18: Vertex two supported by box below
+con18 = {}
+for i in I:
+     for j in I:
+          if i != j:
+               con18[i,j] = model.addConstr(x[i] + item_length[i] * r[i] + item_height[i] * (1- r[i]) <= x[j] + item_length[j] * r[j] + item_height[j] * (1- r[j]) + M * (1- b2[i,j]), 'con18[' + str(i) + ', ' + str(j) + ']-')   
+
+
+# Constraint 19
+con19 = {}
+for i in I:
+     con19[i] = model.addConstr(quicksum(b1[i,j] for j in I if i != j) == quicksum(b2[i,j] for j in I if i != j),'con19[' + str(i) + ']-'  )
+
+# Constraint 20
+con20 = {}
+for i in I:
+     con20[i] = model.addConstr(quicksum(b1[i,j] * x[j] for j in I) <= quicksum(b2[i,j] * x[j] for j in I),'con20[' + str(i) + ']-'  )
+'''
+
+
+
 # %%  ---- Solve ----
 model.setParam( 'OutputFlag', True) # silencing gurobi output or not
 model.setParam ('MIPGap', 0);       # find the optimal solution
@@ -245,4 +300,9 @@ if False:
                          print(u[i,j].x, u[j,i].x)
                          print(p[i,b].x, p[j,b].x)
                          print()
+
+for i in [0]:
+     for j in I:
+          print(i, j, g[i].x,b1[i,j].x, b2[i,j].x)
+
 # %%
