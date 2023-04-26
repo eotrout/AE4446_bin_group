@@ -18,8 +18,8 @@ with open('data/B.pickle', 'rb') as handle:
 model = Model('2D Bin Packing Optimization')
 
 # %% ---- Sets ----
-#I = list(range(len(R_pickle)))
-I = list(range(6))
+I = list(range(len(R_pickle)))
+I = list(range(1))
 B = list(range(len(B_pickle)))
 
 
@@ -186,9 +186,24 @@ con15 = {}
 for i in I:
      con15[i] = model.addConstr(y[i] <= M * (1- g[i]),  'con15[' + str(i) + ']-'     )
 
+# Constraint 16: One support point for vertex 1 i
+con16 = {}
+for i in I:
+     con16[i] = model.addConstr(quicksum(b1[i,j] for j in I) <= 1,  'con16[' + str(i) + ']-'  )
 
 
+# Constraint 17: One support point for vertex 2 i
+con17 = {}
+for i in I:
+     con17[i] = model.addConstr(quicksum(b2[i,j] for j in I) <= 1,  'con17[' + str(i) + ']-'  )
 
+
+# Constraint 18: Y coordinate of item i
+con18 = {}
+for i in I:
+     for j in I:
+          if i != j:
+               con18[i,j] = model.addConstr(y[i] >= (y[j] + item_height[j] * r[j] + item_length[j] * (1- r[j])) * b1[i,j], 'con18[' + str(i) + ', ' + str(j) + ']-'       )
 
 
 
@@ -214,16 +229,6 @@ for i in I:
           if i != j:
                con18[i,j] = model.addConstr(x[i] + item_length[i] * r[i] + item_height[i] * (1- r[i]) <= x[j] + item_length[j] * r[j] + item_height[j] * (1- r[j]) + M * (1- b2[i,j]), 'con18[' + str(i) + ', ' + str(j) + ']-')   
 
-
-# Constraint 19
-con19 = {}
-for i in I:
-     con19[i] = model.addConstr(quicksum(b1[i,j] for j in I if i != j) == quicksum(b2[i,j] for j in I if i != j),'con19[' + str(i) + ']-'  )
-
-# Constraint 20
-con20 = {}
-for i in I:
-     con20[i] = model.addConstr(quicksum(b1[i,j] * x[j] for j in I) <= quicksum(b2[i,j] * x[j] for j in I),'con20[' + str(i) + ']-'  )
 '''
 
 
@@ -301,8 +306,8 @@ if False:
                          print(p[i,b].x, p[j,b].x)
                          print()
 
-for i in [0]:
+for i in [3]:
      for j in I:
-          print(i, j, g[i].x,b1[i,j].x, b2[i,j].x)
+          print(i, j, g[i].x,b1[i,j].x, b2[i,j].x, y[i].x)
 
 # %%
