@@ -1,0 +1,49 @@
+
+Gurobi 9.1.0 (win64) logging started Tue Mar 28 13:55:43 2023
+
+Changed value of parameter LogFile to 2D_BPP.log
+   Prev:   Default: 
+Gurobi Optimizer version 9.1.0 build v9.1.0rc0 (win64)
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+Optimize a model with 900 rows, 288 columns and 4347 nonzeros
+Model fingerprint: 0x31928210
+Variable types: 18 continuous, 270 integer (270 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 2e+01]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [1e+00, 2e+01]
+  RHS range        [1e+00, 3e+01]
+Found heuristic solution: objective 9.0000000
+Presolve removed 36 rows and 29 columns
+Presolve time: 0.01s
+Presolved: 864 rows, 259 columns, 4059 nonzeros
+Variable types: 18 continuous, 241 integer (241 binary)
+
+Root relaxation: objective 1.000000e+00, 235 iterations, 0.00 seconds
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0    1.00000    0    6    9.00000    1.00000  88.9%     -    0s
+H    0     0                       4.0000000    1.00000  75.0%     -    0s
+H    0     0                       3.0000000    1.00000  66.7%     -    0s
+H    0     0                       2.0000000    1.00000  50.0%     -    0s
+     0     0    1.00000    0   30    2.00000    1.00000  50.0%     -    0s
+     0     0    1.00000    0   26    2.00000    1.00000  50.0%     -    0s
+H    0     0                       1.0000000    1.00000  0.00%     -    0s
+
+Cutting planes:
+  Learned: 2
+  Gomory: 3
+  Cover: 2
+  Implied bound: 3
+  MIR: 33
+  Relax-and-lift: 2
+
+Explored 1 nodes (745 simplex iterations) in 0.10 seconds
+Thread count was 8 (of 8 available processors)
+
+Solution count 5: 1 2 3 ... 9
+
+Optimal solution found (tolerance 1.00e-03)
+Best objective 1.000000000000e+00, best bound 1.000000000000e+00, gap 0.0000%
