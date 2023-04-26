@@ -47,67 +47,109 @@ M = 100000
 # p_{ib} variable, 1 if box i is in container b, 0 otherwise
 p = {}
 for i in I:
-     for b in B:
-          p[i,b] = model.addVar (vtype = GRB.BINARY, name = 'p[' + str(i) + ',' + str(b) + ']' )
+    for b in B:
+        p[i,b] = model.addVar (vtype = GRB.BINARY, name = 'p[' + str(i) + ',' + str(b) + ']' )
 
 # z_{b} variable, 1 if container b is used, 0 otherwise
 z = {}
 for b in B:
-     z[b] = model.addVar(vtype = GRB.BINARY, name = 'z[' + str(b) + ']' )
+    z[b] = model.addVar(vtype = GRB.BINARY, name = 'z[' + str(b) + ']' )
 
 # l_{ij} variable, 1 if item i is to the left of item j, 0 otherwise
 l = {}
 for i in I:
-     for j in I:
-          l[i,j] = model.addVar(vtype = GRB.BINARY, name = 'l[' + str(i) + ',' + str(j) + ']' )
+    for j in I:
+        l[i,j] = model.addVar(vtype = GRB.BINARY, name = 'l[' + str(i) + ',' + str(j) + ']' )
 
 # u_{ij} variable, 1 if item i is under item j, 0 otherwise
 u = {}
 for i in I:
-     for j in I:
-          u[i,j] = model.addVar(vtype = GRB.BINARY, name = 'u[' + str(i) + ',' + str(j) + ']' )
+    for j in I:
+        u[i,j] = model.addVar(vtype = GRB.BINARY, name = 'u[' + str(i) + ',' + str(j) + ']' )
 
 # r_{i, L^, L} variable, 1 if the original item i is aligned with the length side of the bin
 r = {}
 for i in I:
-     r[i] = model.addVar(vtype = GRB.BINARY, name = 'r[' + str(i) + ']' )
+    r[i] = model.addVar(vtype = GRB.BINARY, name = 'r[' + str(i) + ']' )
 
 # x_{i} variable, x coordiante of lower_left corner of item i, with respect to origin of bin b
 x = {}
 for i in I:
-     x[i] = model.addVar(vtype = GRB.INTEGER, name = 'x[' + str(i) + ']' )
+    x[i] = model.addVar(vtype = GRB.INTEGER, name = 'x[' + str(i) + ']' )
 
 x2 = {}
 for i in I:
-     x2[i] = model.addVar(vtype = GRB.INTEGER, name = 'x2[' + str(i) + ']' )
+    x2[i] = model.addVar(vtype = GRB.INTEGER, name = 'x2[' + str(i) + ']' )
 
 # y_{i} variable, y coordiante of lower_left corner of item i, with respect to origin of bin b
 y = {}
 for i in I:
-     y[i] = model.addVar(vtype = GRB.INTEGER, name = 'y[' + str(i) + ']'  )
+    y[i] = model.addVar(vtype = GRB.INTEGER, name = 'y[' + str(i) + ']'  )
 
 y2 = {}
 for i in I:
-     y2[i] = model.addVar(vtype = GRB.INTEGER, name = 'y2[' + str(i) + ']'  )
+    y2[i] = model.addVar(vtype = GRB.INTEGER, name = 'y2[' + str(i) + ']'  )
 
 
 # g_{i} variable, 1 if item i lies on the ground of the bin it is assigned to
 g = {}
 for i in I:
-     g[i] = model.addVar(vtype = GRB.BINARY, name = 'g[' + str(i) + ']')
+    g[i] = model.addVar(vtype = GRB.BINARY, name = 'g[' + str(i) + ']')
+
+# h i,j variable, if j has a suitable height to support i
+h = {}
+for i in I:
+    for j in I:
+        h[i,j] = model.addVar(vtype = GRB.BINARY,  name = 'h[' + str(i) + ',' + str(j) + ']' )
+
+# o i,j variable, non empty intersection
+o = {}
+for i in I:
+    for j in I:
+        o[i,j] = model.addVar(vtype = GRB.BINARY,  name = 'o[' + str(i) + ',' + str(j) + ']' )
+
+# s i,j variable, non empty intersection
+s = {}
+for i in I:
+    for j in I:
+        s[i,j] = model.addVar(vtype = GRB.BINARY,  name = 's[' + str(i) + ',' + str(j) + ']' )          
+
+# n1 i,j variable xj smaller than xi
+n1 = {}
+for i in I:
+    for j in I:
+        n1[i,j] = model.addVar(vtype = GRB.BINARY,  name = 'n1[' + str(i) + ',' + str(j) + ']' )        
+
+# n2 i,j variable xj smaller than xi
+n2 = {}
+for i in I:
+    for j in I:
+        n2[i,j] = model.addVar(vtype = GRB.BINARY,  name = 'n2[' + str(i) + ',' + str(j) + ']' )        
+
 
 # b^{1}_{i,j} variable, 1 if vertex 1 of item i is supported by item j
 b1 = {}
 for i in I:
-     for j in I:
-          b1[i,j] = model.addVar(vtype = GRB.BINARY, name = 'b1[' + str(i) + ',' + str(j) + ']' ) 
+    for j in I:
+        b1[i,j] = model.addVar(vtype = GRB.BINARY, name = 'b1[' + str(i) + ',' + str(j) + ']' ) 
 
 # b^{2}_{i,j} variable, 1 if vertex 1 of item i is supported by item j
 b2 = {}
 for i in I:
-     for j in I:
-          b2[i,j] = model.addVar(vtype = GRB.BINARY, name = 'b2[' + str(i) + ',' + str(j) + ']' ) 
+    for j in I:
+        b2[i,j] = model.addVar(vtype = GRB.BINARY, name = 'b2[' + str(i) + ',' + str(j) + ']' ) 
 
+# v i,j diff between boxes
+v = {}
+for i in I:
+    for j in I:
+        v[i,j] = model.addVar(vtype = GRB.INTEGER, name = 'v[' + str(i) + ',' + str(j) + ']' ) 
+
+# m i,j diff between boxes
+m = {}
+for i in I:
+    for j in I:
+        m[i,j] = model.addVar(vtype = GRB.INTEGER, name = 'v[' + str(i) + ',' + str(j) + ']' ) 
 
 # %% ---- Integrate new variables ----
 model.update()
@@ -117,6 +159,15 @@ model.setObjective (quicksum(bin_cost[b] * z[b] for b in B))
 #model.setObjective (quicksum(y[i] for i in I))
 model.modelSense = GRB.MINIMIZE
 model.update ()
+
+# constraint 0: determine link x and x2
+con0 = {}
+for i in I:
+    con0[i] = model.addConstr(x2[i] == x[i] + item_length[i] * r[i] + item_height[i] * (1-r[i]) )
+     
+con01 = {}
+for i in I:
+    con01[i] = model.addConstr(y2[i] == y[i] + item_height[i] * r[i] + item_length[i] * (1-r[i]) )
 
 # Constraint 2: Ensures that there is a value for the l and u constraints if two items are in the same box 
 con2 = {}
@@ -195,61 +246,58 @@ con15 = {}
 for i in I:
      con15[i] = model.addConstr(y[i] <= M * (1- g[i]),  'con15[' + str(i) + ']-'     )
 
-# Constraint 16: One support point for vertex 1 i
+# constraint 16: n1
 con16 = {}
 for i in I:
-     con16[i] = model.addConstr(quicksum(b1[i,j] for j in I) <= 1,  'con16[' + str(i) + ']-'  )
+    for j in I:
+        if i !=j:
+            con16[i,j] = model.addConstr(x[j] >= x[i] - M * (1- n1[i,j])  )
 
-# Constraint 17: One support point for vertex 2 i
+con161 = {}
+for i in I:
+    for j in I:
+        if i !=j:
+            con161[i,j] = model.addConstr(x[j] <= x[i] + M * (1- n1[i,j])  )
+
+# constraint 17: n2
 con17 = {}
 for i in I:
-     con17[i] = model.addConstr(quicksum(b2[i,j] for j in I) <= 1,  'con17[' + str(i) + ']-'  )
+    for j in I:
+        if i !=j:
+            con17[i,j] = model.addConstr(x2[j] >= x2[i] - M * (1- n1[i,j])  )
 
-# Constraint 18: supporting boxes should be under the left vertex 1
+con171 = {}
+for i in I:
+    for j in I:
+        if i !=j:
+            con171[i,j] = model.addConstr(x2[j] <= x2[i] + M * (1- n1[i,j])  )
+
+# absolute level of vij
 con18 = {}
 for i in I:
-     for j in I:
-          if i != j:
-               con18[i,j] = model.addConstr( x[i] >= x[j] * b1[i,j] , 'con18[' + str(i) + ', ' + str(j) + ']-'  )
+    for j in I:
+        con18[i,j] = model.addConstr(y2[j] - y[i] <= v[i,j]  )
 
-# Constraint 18: supporting boxes should be under the left vertex 2
-con182 = {}
-for i in I:
-     for j in I:
-          if i != j:
-               con182[i,j] = model.addConstr( x[i] <= (x[j] + item_length[j] * r[j] + item_height[j] * (1-r[j])) + M * (1 - b1[i,j]) , 'con182[' + str(i) + ', ' + str(j) + ']-'  )
-
-# Constraint 19: supporting boxes should be under the right vertex 1
+# absolute level of vij
 con19 = {}
 for i in I:
-     for j in I:
-          if i != j:
-               con19[i,j] = model.addConstr( x[i] + item_length[i] * r[i] + item_height[i] * (1-r[i]) >= x[j] * b2[i,j] , 'con19[' + str(i) + ', ' + str(j) + ']-'  )
+    for j in I:
+        con19[i,j] = model.addConstr(y[i] - y2[j] <= v[i,j]  )
 
-# Constraint 19: supporting boxes should be under the right vertex 2
-con192 = {}
-for i in I:
-     for j in I:
-          if i != j:
-               con192[i,j] = model.addConstr(x[i] + item_length[i] * r[i] + item_height[i] * (1-r[i]) <= (x[j] + item_length[j] * r[j] + item_height[j] * (1-r[j])) + M * (1 - b2[i,j]) , 'con192[' + str(i) + ', ' + str(j) + ']-'  )
 
-# Constraint 20: Height of box i depends on supporting box of vertex 1
+# mij
 con20 = {}
 for i in I:
-     for j in I:
-          if i != j:
-               con20[i, j] = model.addConstr(y[i] <= y[j] + item_height[j] * r[j] + item_length[j] * (1-r[j]) + M * (1-b1[i,j]), 'con20[' + str(i) + ', ' + str(j) + ']-'  ) 
+    for j in I:
+        if i !=j:
+            con20[i,j] = model.addConstr(y[j] >= y2[i] - M * (1- m[i,j])  )
 
-# Constraint 21: both supporting boxes at same hight
-con21 = {}
+con201 = {}
 for i in I:
-     con21[i] = model.addConstr(quicksum((y[j] + item_height[j] * r[j] + item_length[j] * (1-r[j])) * b1[i,j] for j in I) == quicksum((y[j] + item_height[j] * r[j] + item_length[j] * (1-r[j])) * b2[i,j] for j in I), 'con21[' + str(i) + ', ' + str(j) + ']-' )
+    for j in I:
+        if i !=j:
+            con201[i,j] = model.addConstr(y2[j] <= y[i] - M * (1 - m[i,j])  )
 
-con22 = {}
-for i in I:
-     for j in I:
-          if i != j:
-               con22[i] = model.addConstr(b1[i,j] + u[i,j] <= 1 )
 
 
 # %%  ---- Solve ----
