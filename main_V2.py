@@ -18,10 +18,10 @@ with open('data/B.pickle', 'rb') as handle:
 model = Model('2D Bin Packing Optimization')
 
 # %% ---- Sets ----
-#I = list(range(len(R_pickle)))
-I = list(range(6))
-#B = list(range(len(B_pickle)))
-B = list(range(1))
+I = list(range(len(R_pickle)))
+#I = list(range(12))
+B = list(range(len(B_pickle)))
+#B = list(range(1))
 
 # %% ---- Parameters ----
 item_length = [value[0] for key, value in R_pickle.items()]
@@ -96,6 +96,16 @@ g = {}
 for i in I:
     g[i] = model.addVar(vtype = GRB.BINARY, name = 'g[' + str(i) + ']')
 
+# per_i,b variable, mark bin b as perishable as soon as perisbale item is in the bin
+per = {}
+for b in B:
+    per[b] = model.addVar(vtype = GRB.BINARY, name = 'per[' + str(b) + ']' )
+
+# rad_i,b variable, mark bin b as radioactive as soon as radioactive item is in the bin
+rad = {}
+for b in B:
+    rad[ b] = model.addVar(vtype = GRB.BINARY, name = 'rad[' + str(b) + ']' )
+
 # h i,j variable, if j has a suitable height to support i
 h = {}
 for i in I:
@@ -126,7 +136,6 @@ for i in I:
     for j in I:
         n2[i,j] = model.addVar(vtype = GRB.BINARY,  name = 'n2[' + str(i) + ',' + str(j) + ']' )        
 
-
 # b^{1}_{i,j} variable, 1 if vertex 1 of item i is supported by item j
 b1 = {}
 for i in I:
@@ -149,7 +158,11 @@ for i in I:
 m = {}
 for i in I:
     for j in I:
-        m[i,j] = model.addVar(vtype = GRB.INTEGER, name = 'v[' + str(i) + ',' + str(j) + ']' ) 
+        m[i,j] = model.addVar(vtype = GRB.INTEGER, name = 'm[' + str(i) + ',' + str(j) + ']' ) 
+
+
+
+
 
 # %% ---- Integrate new variables ----
 model.update()
@@ -239,12 +252,22 @@ for i in I:
 # Constraint 14: Support constraint
 con14 = {}
 for i in I:
-     con14[i] = model.addConstr(quicksum(b1[i,j] + b2[i,j] + 2*g[i] for j in I if i != j )== 2, 'con14[' + str(i) + ']-'    )
+     con14[i] = model.addConstr(quicksum(b1[i,j] for j in I if i != j) + quicksum(b2[i,j] for j in I if i != j) + 2*g[i] == 2, 'con14[' + str(i) + ']-'    )
+
+con141 = {}
+for i in I:
+    con141[i] = model.addConstr(quicksum(b1[i,j] for j in I if j != i) == quicksum(b2[i,j] for j in I if j != i)  )
+
 
 # Constraint 15: Gravity constraint 1
 con15 = {}
 for i in I:
      con15[i] = model.addConstr(y[i] <= M * (1- g[i]),  'con15[' + str(i) + ']-'     )
+
+con151 = {}
+for i in I:
+     con151[i] = model.addConstr((1 -g[i]) <= y[i] ,  'con151[' + str(i) + ']-'     )
+
 
 # constraint 16: n1
 con16 = {}
@@ -257,20 +280,20 @@ con161 = {}
 for i in I:
     for j in I:
         if i !=j:
-            con161[i,j] = model.addConstr(x[j] <= x[i] + M * (1- n1[i,j])  )
+            con161[i,j] = model.addConstr(x[j] <= x[i] + M * (n1[i,j])  )
 
 # constraint 17: n2
 con17 = {}
 for i in I:
     for j in I:
         if i !=j:
-            con17[i,j] = model.addConstr(x2[j] >= x2[i] - M * (1- n1[i,j])  )
+            con17[i,j] = model.addConstr(x2[i] >= x2[j] - M * (1- n2[i,j])  )
 
 con171 = {}
 for i in I:
     for j in I:
         if i !=j:
-            con171[i,j] = model.addConstr(x2[j] <= x2[i] + M * (1- n1[i,j])  )
+            con171[i,j] = model.addConstr(x2[i] <= x2[j] + M * (n2[i,j])  )
 
 # absolute level of vij
 con18 = {}
@@ -290,20 +313,151 @@ con20 = {}
 for i in I:
     for j in I:
         if i !=j:
-            con20[i,j] = model.addConstr(y[j] >= y2[i] - M * (1- m[i,j])  )
+            con20[i,j] = model.addConstr(y2[j] >= y[i] - M * (1- m[i,j])  )
 
 con201 = {}
 for i in I:
     for j in I:
         if i !=j:
-            con201[i,j] = model.addConstr(y2[j] <= y[i] - M * (1 - m[i,j])  )
+            con201[i,j] = model.addConstr(y2[j] <= y[i] + M * (m[i,j])  )
+
+# Determine if iem j has a suitable height for item i
+con21 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con21[i,j] = model.addConstr(v[i,j] <= y2[j] - y[i] + 2*M*(1-m[i,j]))
+
+con211 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con211[i,j] = model.addConstr(v[i,j] <= y[i] - y2[j] + 2 * M * m[i,j] )
+
+con212 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con212[i,j] = model.addConstr(h[i,j] <= v[i,j] )
+
+con213 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con213[i,j] = model.addConstr(v[i,j] <= h[i,j] * M)
+
+# Constraint based on the fact that boxes i and k share a part of their orthogonal projection
+con22 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con22[i,j] = model.addConstr( o[i,j] <= l[i,j] + l[j,i]      )
+
+con221 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con221[i,j] = model.addConstr(o[i,j] >= l[i,j] + l[j,i]      )
+
+# If the bottom face of box i is supported by the top face of a box j
+con23 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con23[i,j] = model.addConstr( (1-s[i,j]) <= h[i,j] + o[i,j]  )
+
+con231 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con231[i,j] = model.addConstr( 2*(1-s[i,j]) >= h[i,j] + o[i,j]  )
 
 
+# guarentee that stacket items are in the same bin 
+con24 = {}
+for i in I:
+    for j in I:
+        for b in B:
+            if i != j:
+                con24[i,j,b] = model.addConstr(p[i,b] - p[j,b] <= 1 - s[i,j] )
+
+con241 = {}
+for i in I:
+    for j in I:
+        for b in B:
+            if i != j:
+                con241[i,j,b] = model.addConstr(p[j,b] - p[i,b] <= 1 - s[i,j] )
+
+
+# Constraint certify that a box k support one vertex of the basis of box i only if this one is supported by box k,
+con25 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con25[i,j] = model.addConstr(b1[i,j] <= s[i,j]   )
+
+con251 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con251[i,j] = model.addConstr(b2[i,j] <= s[i,j]   )
+
+
+# fig 9 constraints
+con26 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con26[i,j] = model.addConstr(n1[i,j] + n2[i,j] <= 2 * (1-b1[i,j])     )
+
+con261 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con261[i,j] = model.addConstr(n1[i,j] + n2[i,j] <= 2 * (1-b2[i,j])     )
+
+# Fragile constraint
+con27 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con27[i,j] = model.addConstr(s[i,j] <= (1 - fragile[j])    )
+
+# rotation constraint r[i] == 1 means original position
+con28 = {}
+for i in I:
+    con28[i] = model.addConstr(r[i] >= (1 - rotatable[i]) )
+
+# radioactive, perishable contstraint
+# mark perishable bin
+con29 = {}
+for i in I:
+    for b in B:
+        con29[i,b] = model.addConstr( perishable[i] - M*(1-p[i,b])  <= per[b] )
+
+# mark radioactive bin
+con291 = {}
+for i in I:
+    for b in B:
+        con291[i,b] = model.addConstr( radioactive[i] - M*(1-p[i,b])  <= rad[b]  )
+
+# either or constraint
+con292 = {}
+for b in B:
+    con292[b] = model.addConstr( per[b] + rad[b] <= 1   )
+
+
+if False:
+    con99 = {}
+    con99[0] = model.addConstr(x[0] == 0)
+    con99[0] = model.addConstr(x[1] == 0)
+    con99[0] = model.addConstr(y[1] == 0)
+    #con99[0] = model.addConstr(y[2] == 0)
 
 # %%  ---- Solve ----
 model.setParam( 'OutputFlag', True) # silencing gurobi output or not
 model.setParam ('MIPGap', 0);       # find the optimal solution
-#model.setParam('TimeLimit', 30)  # TimeLimit of five minutes
+model.setParam('TimeLimit', 300)  # TimeLimit of five minutes
 model.write("output.lp")            # print the model in .lp format file
 model.optimize ()
 
@@ -324,6 +478,13 @@ if model.status == GRB.Status.OPTIMAL or model.status == GRB.Status.TIME_LIMIT: 
     colors = plt.cm.viridis(np.linspace(0, 1, len(I)))
     for b in B:
         if z[b].x == 1.0:
+            # bin label 
+            bin_label = ''
+            if per[b].x == 1.0:
+                bin_label += 'Per.'
+            if rad[b].x == 1.0:
+                bin_label += 'Rad.'
+
             # Set the width and height of the bin
             b_length = bin_length[b]
             b_height = bin_height[b]
@@ -337,6 +498,17 @@ if model.status == GRB.Status.OPTIMAL or model.status == GRB.Status.TIME_LIMIT: 
 
             for i in I:
                 if p[i,b].x == 1.0:
+                    # set label
+                    label = ''
+                    if fragile[i] == 1.0:
+                        label += '\nFra.'
+                    if perishable[i] == 1.0:
+                        label += '\nPer.'
+                    if radioactive[i] == 1.0:
+                        label += '\nRad.'
+                    if rotatable[i] == 1.0:
+                        label += '\nRot.'
+
                     # Set the width and height of the item
                     i_length = item_length[i] * r[i].x + item_height[i] * (1- r[i].x)  
                     i_height = item_height[i] * r[i].x + item_length[i] * (1- r[i].x)  
@@ -348,14 +520,14 @@ if model.status == GRB.Status.OPTIMAL or model.status == GRB.Status.TIME_LIMIT: 
                     # Add a rectangle to the axis
                     rect_item = plt.Rectangle((x_pos, y_pos), i_length, i_height, linewidth=1, edgecolor='black', facecolor=colors[i])
                     ax.add_patch(rect_item)
-                    ax.text(x_pos + i_length/2, y_pos + i_height/2, 'i: ' + str(i), ha='center', va='center', color='white')
+                    ax.text(x_pos + i_length/2, y_pos + i_height/2, 'i: ' + str(i) + ' (' + label + ')'   , ha='center', va='center', color='white')
                   
             # Set the limits of the plot
             ax.set_xlim([-1, b_length + 1])
             ax.set_ylim([-1, b_height + 1])
 
             # Add a title to the plot
-            ax.set_title('Bin ' + str(b))
+            ax.set_title('Bin ' + str(b) + '; ' + bin_label)
 
             # Show the plot
             plt.show()               
@@ -372,9 +544,15 @@ if False:
                          print(p[i,b].x, p[j,b].x)
                          print()
 
+if False:
+    for i in [4]:
+        for j in I:
+            print(i, j, g[i].x,b1[i,j].x, b2[i,j].x, u[i,j].x, y[i].x)
 
-for i in [4]:
-     for j in I:
-          print(i, j, g[i].x,b1[i,j].x, b2[i,j].x, u[i,j].x, y[i].x)
+if True:
+    for i in [0,1]:
+        for j in I:
+            print(i, j, g[i].x,b1[i,j].x, b2[i,j].x, s[i,j].x, h[i,j].x, o[i,j].x, n1[i,j].x, n2[i,j].x)
+
 
 # %%
