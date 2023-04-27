@@ -18,10 +18,10 @@ with open('data/B.pickle', 'rb') as handle:
 model = Model('2D Bin Packing Optimization')
 
 # %% ---- Sets ----
-I = list(range(len(R_pickle)))
-I = list(range(1))
-B = list(range(len(B_pickle)))
-
+#I = list(range(len(R_pickle)))
+I = list(range(6))
+#B = list(range(len(B_pickle)))
+B = list(range(1))
 
 # %% ---- Parameters ----
 item_length = [value[0] for key, value in R_pickle.items()]
@@ -77,10 +77,19 @@ x = {}
 for i in I:
      x[i] = model.addVar(vtype = GRB.INTEGER, name = 'x[' + str(i) + ']' )
 
+x2 = {}
+for i in I:
+     x2[i] = model.addVar(vtype = GRB.INTEGER, name = 'x2[' + str(i) + ']' )
+
 # y_{i} variable, y coordiante of lower_left corner of item i, with respect to origin of bin b
 y = {}
 for i in I:
      y[i] = model.addVar(vtype = GRB.INTEGER, name = 'y[' + str(i) + ']'  )
+
+y2 = {}
+for i in I:
+     y2[i] = model.addVar(vtype = GRB.INTEGER, name = 'y2[' + str(i) + ']'  )
+
 
 # g_{i} variable, 1 if item i lies on the ground of the bin it is assigned to
 g = {}
@@ -105,6 +114,7 @@ model.update()
 
 # %% ---- Objective Function ----
 model.setObjective (quicksum(bin_cost[b] * z[b] for b in B))
+#model.setObjective (quicksum(y[i] for i in I))
 model.modelSense = GRB.MINIMIZE
 model.update ()
 
@@ -172,7 +182,6 @@ for i in I:
      for b in B:
          con12[i,b] = model.addConstr(z[b] >= p[i,b], 'con12[' + str(i) + ', ' + str(b) + ']-'    )     
 
-
 # Constraint 13: Incompatible combination constraint
 
 
@@ -181,7 +190,7 @@ con14 = {}
 for i in I:
      con14[i] = model.addConstr(quicksum(b1[i,j] + b2[i,j] + 2*g[i] for j in I if i != j )== 2, 'con14[' + str(i) + ']-'    )
 
-# Constraint 15: Gravity constraint
+# Constraint 15: Gravity constraint 1
 con15 = {}
 for i in I:
      con15[i] = model.addConstr(y[i] <= M * (1- g[i]),  'con15[' + str(i) + ']-'     )
@@ -191,52 +200,62 @@ con16 = {}
 for i in I:
      con16[i] = model.addConstr(quicksum(b1[i,j] for j in I) <= 1,  'con16[' + str(i) + ']-'  )
 
-
 # Constraint 17: One support point for vertex 2 i
 con17 = {}
 for i in I:
      con17[i] = model.addConstr(quicksum(b2[i,j] for j in I) <= 1,  'con17[' + str(i) + ']-'  )
 
-
-# Constraint 18: Y coordinate of item i
+# Constraint 18: supporting boxes should be under the left vertex 1
 con18 = {}
 for i in I:
      for j in I:
           if i != j:
-               con18[i,j] = model.addConstr(y[i] >= (y[j] + item_height[j] * r[j] + item_length[j] * (1- r[j])) * b1[i,j], 'con18[' + str(i) + ', ' + str(j) + ']-'       )
+               con18[i,j] = model.addConstr( x[i] >= x[j] * b1[i,j] , 'con18[' + str(i) + ', ' + str(j) + ']-'  )
 
-
-
-'''
-# Constraint 16
-con16 = {}
+# Constraint 18: supporting boxes should be under the left vertex 2
+con182 = {}
 for i in I:
      for j in I:
           if i != j:
-               con16[i,j] = model.addConstr(y[i] <= y[j] + item_height[j] * r[j] + item_length[j] * (1- r[j]) + M * (1-b1[i,j]), 'con16[' + str(i) + ', ' + str(j) + ']-'    )     
+               con182[i,j] = model.addConstr( x[i] <= (x[j] + item_length[j] * r[j] + item_height[j] * (1-r[j])) + M * (1 - b1[i,j]) , 'con182[' + str(i) + ', ' + str(j) + ']-'  )
 
-# Constraint 17: Vertex one supported by box below
-con17 = {}
+# Constraint 19: supporting boxes should be under the right vertex 1
+con19 = {}
 for i in I:
      for j in I:
           if i != j:
-               con17[i,j] = model.addConstr(x[i] >= x[j] * b1[i,j], 'con17[' + str(i) + ', ' + str(j) + ']-')   
+               con19[i,j] = model.addConstr( x[i] + item_length[i] * r[i] + item_height[i] * (1-r[i]) >= x[j] * b2[i,j] , 'con19[' + str(i) + ', ' + str(j) + ']-'  )
 
-# Constraint 18: Vertex two supported by box below
-con18 = {}
+# Constraint 19: supporting boxes should be under the right vertex 2
+con192 = {}
 for i in I:
      for j in I:
           if i != j:
-               con18[i,j] = model.addConstr(x[i] + item_length[i] * r[i] + item_height[i] * (1- r[i]) <= x[j] + item_length[j] * r[j] + item_height[j] * (1- r[j]) + M * (1- b2[i,j]), 'con18[' + str(i) + ', ' + str(j) + ']-')   
+               con192[i,j] = model.addConstr(x[i] + item_length[i] * r[i] + item_height[i] * (1-r[i]) <= (x[j] + item_length[j] * r[j] + item_height[j] * (1-r[j])) + M * (1 - b2[i,j]) , 'con192[' + str(i) + ', ' + str(j) + ']-'  )
 
-'''
+# Constraint 20: Height of box i depends on supporting box of vertex 1
+con20 = {}
+for i in I:
+     for j in I:
+          if i != j:
+               con20[i, j] = model.addConstr(y[i] <= y[j] + item_height[j] * r[j] + item_length[j] * (1-r[j]) + M * (1-b1[i,j]), 'con20[' + str(i) + ', ' + str(j) + ']-'  ) 
 
+# Constraint 21: both supporting boxes at same hight
+con21 = {}
+for i in I:
+     con21[i] = model.addConstr(quicksum((y[j] + item_height[j] * r[j] + item_length[j] * (1-r[j])) * b1[i,j] for j in I) == quicksum((y[j] + item_height[j] * r[j] + item_length[j] * (1-r[j])) * b2[i,j] for j in I), 'con21[' + str(i) + ', ' + str(j) + ']-' )
+
+con22 = {}
+for i in I:
+     for j in I:
+          if i != j:
+               con22[i] = model.addConstr(b1[i,j] + u[i,j] <= 1 )
 
 
 # %%  ---- Solve ----
 model.setParam( 'OutputFlag', True) # silencing gurobi output or not
 model.setParam ('MIPGap', 0);       # find the optimal solution
-model.setParam('TimeLimit', 300)  # TimeLimit of five minutes
+#model.setParam('TimeLimit', 30)  # TimeLimit of five minutes
 model.write("output.lp")            # print the model in .lp format file
 model.optimize ()
 
@@ -293,7 +312,6 @@ if model.status == GRB.Status.OPTIMAL or model.status == GRB.Status.TIME_LIMIT: 
             # Show the plot
             plt.show()               
                         
-
 # %%
 if False:
      for b in B:
@@ -306,8 +324,9 @@ if False:
                          print(p[i,b].x, p[j,b].x)
                          print()
 
-for i in [3]:
+
+for i in [4]:
      for j in I:
-          print(i, j, g[i].x,b1[i,j].x, b2[i,j].x, y[i].x)
+          print(i, j, g[i].x,b1[i,j].x, b2[i,j].x, u[i,j].x, y[i].x)
 
 # %%
