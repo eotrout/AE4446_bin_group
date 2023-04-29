@@ -162,8 +162,6 @@ for i in I:
 
 
 
-
-
 # %% ---- Integrate new variables ----
 model.update()
 
@@ -300,7 +298,6 @@ con21 = {}
 for i in I:
     for j in I:
         con21[i,j] = model.addConstr(y[i] - y2[j] <= v[i,j]  )
-
 
 # mij big m constraint part one
 con22 = {}
@@ -446,7 +443,7 @@ for b in B:
 # %%  ---- Solve ----
 model.setParam( 'OutputFlag', True) # silencing gurobi output or not
 model.setParam ('MIPGap', 0);       # find the optimal solution
-model.setParam('TimeLimit', 300)  # TimeLimit of five minutes
+model.setParam('TimeLimit', 1800)  # TimeLimit of five minutes
 model.write("output.lp")            # print the model in .lp format file
 model.optimize ()
 
@@ -538,7 +535,7 @@ if False:
         for j in I:
             print(i, j, g[i].x,b1[i,j].x, b2[i,j].x, u[i,j].x, y[i].x)
 
-if True:
+if False:
     for i in [0,1]:
         for j in I:
             print(i, j, g[i].x,b1[i,j].x, b2[i,j].x, s[i,j].x, h[i,j].x, o[i,j].x, n1[i,j].x, n2[i,j].x)
