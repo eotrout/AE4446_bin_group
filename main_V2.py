@@ -96,12 +96,12 @@ g = {}
 for i in I:
     g[i] = model.addVar(vtype = GRB.BINARY, name = 'g[' + str(i) + ']')
 
-# per_i,b variable, mark bin b as perishable as soon as perisbale item is in the bin
+# per_i variable, mark bin b as perishable as soon as perisbale item is in the bin
 per = {}
 for b in B:
     per[b] = model.addVar(vtype = GRB.BINARY, name = 'per[' + str(b) + ']' )
 
-# rad_i,b variable, mark bin b as radioactive as soon as radioactive item is in the bin
+# rad_i variable, mark bin b as radioactive as soon as radioactive item is in the bin
 rad = {}
 for b in B:
     rad[ b] = model.addVar(vtype = GRB.BINARY, name = 'rad[' + str(b) + ']' )
@@ -118,7 +118,7 @@ for i in I:
     for j in I:
         o[i,j] = model.addVar(vtype = GRB.BINARY,  name = 'o[' + str(i) + ',' + str(j) + ']' )
 
-# s i,j variable, non empty intersection
+# s i,j 
 s = {}
 for i in I:
     for j in I:
@@ -162,302 +162,288 @@ for i in I:
 
 
 
-
-
 # %% ---- Integrate new variables ----
 model.update()
 
 # %% ---- Objective Function ----
 model.setObjective (quicksum(bin_cost[b] * z[b] for b in B))
-#model.setObjective (quicksum(y[i] for i in I))
 model.modelSense = GRB.MINIMIZE
 model.update ()
 
-# constraint 0: determine link x and x2
-con0 = {}
-for i in I:
-    con0[i] = model.addConstr(x2[i] == x[i] + item_length[i] * r[i] + item_height[i] * (1-r[i]) )
-     
-con01 = {}
-for i in I:
-    con01[i] = model.addConstr(y2[i] == y[i] + item_height[i] * r[i] + item_length[i] * (1-r[i]) )
-
-# Constraint 2: Ensures that there is a value for the l and u constraints if two items are in the same box 
+# constraint 2: determine link x and x2
 con2 = {}
 for i in I:
-     for j in I:
-          for b in B:
-               if i != j:
-                    con2[i,j,b] = model.addConstr(l[i,j] + l[j,i] + u[i,j] + u[j,i] >= (p[i,b] + p[j,b] -1), 'con2[' + str(i) + ', ' + str(j) + ', ' + str(b) + ']-')     
+    con2[i] = model.addConstr(x2[i] == x[i] + item_length[i] * r[i] + item_height[i] * (1-r[i]) )
 
-# Constraint 3: Mutual positioning along the x axis 1
+# constraint 3: determine link y and y2     
 con3 = {}
 for i in I:
-     for j in I:
-          for b in B:
-               if i != j:
-                    con3[i,j,b] = model.addConstr(x[j] >= x[i] + item_length[i] * r[i] + item_height[i] * (1- r[i]) - M * (1- l[i,j]), 'con3[' + str(i) + ', ' + str(j) + ', ' + str(b) + ']-')   
+    con3[i] = model.addConstr(y2[i] == y[i] + item_height[i] * r[i] + item_length[i] * (1-r[i]) )
 
-# Constraint 4: Mutual positioning along the x axis 2
+# Constraint 4: Ensures that there is a value for the l and u constraints if two items are in the same box 
 con4 = {}
 for i in I:
      for j in I:
           for b in B:
                if i != j:
-                    con4[i,j,b] = model.addConstr(x[j] <= x[i] + item_length[i] * r[i] + item_height[i] * (1- r[i]) + M * l[i,j], 'con4[' + str(i) + ', ' + str(j) + ', ' + str(b) + ']-')   
+                    con4[i,j,b] = model.addConstr(l[i,j] + l[j,i] + u[i,j] + u[j,i] >= (p[i,b] + p[j,b] -1))     
 
-                   
-# Constraint 5: Mutual positioning along the y axis 1
+# Constraint 5: Mutual positioning along the x axis 1
 con5 = {}
 for i in I:
      for j in I:
           for b in B:
                if i != j:
-                    con5[i,j,b] = model.addConstr(y[j] >= y[i] + item_length[i] * (1- r[i]) + item_height[i] * r[i] - M * (1- u[i,j]), 'con5[' + str(i) + ', ' + str(j) + ', ' + str(b) + ']-')   
+                    con5[i,j,b] = model.addConstr(x[j] >= x[i] + item_length[i] * r[i] + item_height[i] * (1- r[i]) - M * (1- l[i,j]))   
 
-# Constraint 6: Mutual positioning along the y axis 2
+# Constraint 6: Mutual positioning along the x axis 2
 con6 = {}
 for i in I:
      for j in I:
           for b in B:
                if i != j:
-                    con6[i,j,b] = model.addConstr(y[j] <= y[i] + item_length[i] * (1- r[i]) + item_height[i] * r[i] + M * u[i,j], 'con6[' + str(i) + ', ' + str(j) + ', ' + str(b) + ']-')   
+                    con6[i,j,b] = model.addConstr(x[j] <= x[i] + item_length[i] * r[i] + item_height[i] * (1- r[i]) + M * l[i,j])   
 
-# Constraint 7: Ensure that the lower-right vertex of item i is contained within bin b.
+                   
+# Constraint 7: Mutual positioning along the y axis 1
 con7 = {}
 for i in I:
-     for b in B:
-          con7[i,b] = model.addConstr(x[i] + item_length[i] * r[i] + item_height[i] * (1- r[i]) <= quicksum(bin_length[b] * p[i,b] for b in B), 'con7[' + str(i) + ', ' + str(b) + ']-')  
+     for j in I:
+          for b in B:
+               if i != j:
+                    con7[i,j,b] = model.addConstr(y[j] >= y[i] + item_length[i] * (1- r[i]) + item_height[i] * r[i] - M * (1- u[i,j]))   
 
-# Constraint 8: Ensure that the upper-right vertex of item i is contained within bin b.
+# Constraint 8: Mutual positioning along the y axis 2
 con8 = {}
 for i in I:
+     for j in I:
+          for b in B:
+               if i != j:
+                    con8[i,j,b] = model.addConstr(y[j] <= y[i] + item_length[i] * (1- r[i]) + item_height[i] * r[i] + M * u[i,j])   
+
+# Constraint 9: Ensure that the lower-right vertex of item i is contained within bin b.
+con9 = {}
+for i in I:
      for b in B:
-          con8[i,b] = model.addConstr(y[i] + item_length[i] * (1- r[i]) + item_height[i] * r[i] <= quicksum(bin_height[b] * p[i,b] for b in B), 'con8[' + str(i) + ', ' + str(b) + ']-')  
+          con9[i,b] = model.addConstr(x[i] + item_length[i] * r[i] + item_height[i] * (1- r[i]) <= quicksum(bin_length[b] * p[i,b] for b in B))  
+
+# Constraint 10: Ensure that the upper-right vertex of item i is contained within bin b.
+con10 = {}
+for i in I:
+     for b in B:
+          con10[i,b] = model.addConstr(y[i] + item_length[i] * (1- r[i]) + item_height[i] * r[i] <= quicksum(bin_height[b] * p[i,b] for b in B))  
 
 # Constraint 11: item assignment to bin
 con11 = {}
 for i in I:
-    con11[i] = model.addConstr(quicksum(p[i,b] for b in B )  == 1, 'con11[' + str(i) + ']-'    )
+    con11[i] = model.addConstr(quicksum(p[i,b] for b in B )  == 1)
 
 # Constraint 12: bin flagged as used
 con12 = {}
 for i in I:
      for b in B:
-         con12[i,b] = model.addConstr(z[b] >= p[i,b], 'con12[' + str(i) + ', ' + str(b) + ']-'    )     
+         con12[i,b] = model.addConstr(z[b] >= p[i,b])     
 
-# Constraint 13: Incompatible combination constraint
+# Constraint 13: Support constraint
+con13 = {}
+for i in I:
+     con13[i] = model.addConstr(quicksum(b1[i,j] for j in I if i != j) + quicksum(b2[i,j] for j in I if i != j) + 2*g[i] == 2)
 
-
-# Constraint 14: Support constraint
+# Constraint 14: Stability constraint
 con14 = {}
 for i in I:
-     con14[i] = model.addConstr(quicksum(b1[i,j] for j in I if i != j) + quicksum(b2[i,j] for j in I if i != j) + 2*g[i] == 2, 'con14[' + str(i) + ']-'    )
+    con14[i] = model.addConstr(quicksum(b1[i,j] for j in I if j != i) == quicksum(b2[i,j] for j in I if j != i)  )
 
-con141 = {}
-for i in I:
-    con141[i] = model.addConstr(quicksum(b1[i,j] for j in I if j != i) == quicksum(b2[i,j] for j in I if j != i)  )
-
-
-# Constraint 15: Gravity constraint 1
+# Constraint 15: Gravity constraint
 con15 = {}
 for i in I:
      con15[i] = model.addConstr(y[i] <= M * (1- g[i]),  'con15[' + str(i) + ']-'     )
 
-con151 = {}
-for i in I:
-     con151[i] = model.addConstr((1 -g[i]) <= y[i] ,  'con151[' + str(i) + ']-'     )
-
-
-# constraint 16: n1
+# constraint 16: n1 big M part one
 con16 = {}
 for i in I:
     for j in I:
         if i !=j:
             con16[i,j] = model.addConstr(x[j] >= x[i] - M * (1- n1[i,j])  )
 
-con161 = {}
+# constraint 17: n1 big M part two
+con17= {}
 for i in I:
     for j in I:
         if i !=j:
-            con161[i,j] = model.addConstr(x[j] <= x[i] + M * (n1[i,j])  )
+            con17[i,j] = model.addConstr(x[j] <= x[i] + M * (n1[i,j])  )
 
-# constraint 17: n2
-con17 = {}
-for i in I:
-    for j in I:
-        if i !=j:
-            con17[i,j] = model.addConstr(x2[i] >= x2[j] - M * (1- n2[i,j])  )
-
-con171 = {}
-for i in I:
-    for j in I:
-        if i !=j:
-            con171[i,j] = model.addConstr(x2[i] <= x2[j] + M * (n2[i,j])  )
-
-# absolute level of vij
+# constraint 18: n2 big M part one
 con18 = {}
 for i in I:
     for j in I:
-        con18[i,j] = model.addConstr(y2[j] - y[i] <= v[i,j]  )
+        if i !=j:
+            con18[i,j] = model.addConstr(x2[i] >= x2[j] - M * (1- n2[i,j])  )
 
-# absolute level of vij
+# constraint 19: n2 big M part two
 con19 = {}
 for i in I:
     for j in I:
-        con19[i,j] = model.addConstr(y[i] - y2[j] <= v[i,j]  )
+        if i !=j:
+            con19[i,j] = model.addConstr(x2[i] <= x2[j] + M * (n2[i,j])  )
 
-
-# mij
+# absolute level of vij part one
 con20 = {}
 for i in I:
     for j in I:
-        if i !=j:
-            con20[i,j] = model.addConstr(y2[j] >= y[i] - M * (1- m[i,j])  )
+        con20[i,j] = model.addConstr(y2[j] - y[i] <= v[i,j]  )
 
-con201 = {}
-for i in I:
-    for j in I:
-        if i !=j:
-            con201[i,j] = model.addConstr(y2[j] <= y[i] + M * (m[i,j])  )
-
-# Determine if iem j has a suitable height for item i
+# absolute level of vij part two
 con21 = {}
 for i in I:
     for j in I:
-        if i != j:
-            con21[i,j] = model.addConstr(v[i,j] <= y2[j] - y[i] + 2*M*(1-m[i,j]))
+        con21[i,j] = model.addConstr(y[i] - y2[j] <= v[i,j]  )
 
-con211 = {}
-for i in I:
-    for j in I:
-        if i != j:
-            con211[i,j] = model.addConstr(v[i,j] <= y[i] - y2[j] + 2 * M * m[i,j] )
-
-con212 = {}
-for i in I:
-    for j in I:
-        if i != j:
-            con212[i,j] = model.addConstr(h[i,j] <= v[i,j] )
-
-con213 = {}
-for i in I:
-    for j in I:
-        if i != j:
-            con213[i,j] = model.addConstr(v[i,j] <= h[i,j] * M)
-
-# Constraint based on the fact that boxes i and k share a part of their orthogonal projection
+# mij big m constraint part one
 con22 = {}
 for i in I:
     for j in I:
-        if i != j:
-            con22[i,j] = model.addConstr( o[i,j] <= l[i,j] + l[j,i]      )
+        if i !=j:
+            con22[i,j] = model.addConstr(y2[j] >= y[i] - M * (1- m[i,j])  )
 
-con221 = {}
-for i in I:
-    for j in I:
-        if i != j:
-            con221[i,j] = model.addConstr(o[i,j] >= l[i,j] + l[j,i]      )
-
-# If the bottom face of box i is supported by the top face of a box j
+# mij big m constraint part two
 con23 = {}
 for i in I:
     for j in I:
-        if i != j:
-            con23[i,j] = model.addConstr( (1-s[i,j]) <= h[i,j] + o[i,j]  )
+        if i !=j:
+            con23[i,j] = model.addConstr(y2[j] <= y[i] + M * (m[i,j])  )
 
-con231 = {}
-for i in I:
-    for j in I:
-        if i != j:
-            con231[i,j] = model.addConstr( 2*(1-s[i,j]) >= h[i,j] + o[i,j]  )
-
-
-# guarentee that stacket items are in the same bin 
+# Determine if iem j has a suitable height for item i part one
 con24 = {}
 for i in I:
     for j in I:
-        for b in B:
-            if i != j:
-                con24[i,j,b] = model.addConstr(p[i,b] - p[j,b] <= 1 - s[i,j] )
+        if i != j:
+            con24[i,j] = model.addConstr(v[i,j] <= y2[j] - y[i] + M*(1-m[i,j]))
 
-con241 = {}
-for i in I:
-    for j in I:
-        for b in B:
-            if i != j:
-                con241[i,j,b] = model.addConstr(p[j,b] - p[i,b] <= 1 - s[i,j] )
-
-
-# Constraint certify that a box k support one vertex of the basis of box i only if this one is supported by box k,
+# Determine if iem j has a suitable height for item i part two
 con25 = {}
 for i in I:
     for j in I:
         if i != j:
-            con25[i,j] = model.addConstr(b1[i,j] <= s[i,j]   )
+            con25[i,j] = model.addConstr(v[i,j] <= y[i] - y2[j] + M * m[i,j] )
 
-con251 = {}
-for i in I:
-    for j in I:
-        if i != j:
-            con251[i,j] = model.addConstr(b2[i,j] <= s[i,j]   )
-
-
-# fig 9 constraints
+# Determine if iem j has a suitable height for item i part three
 con26 = {}
 for i in I:
     for j in I:
         if i != j:
-            con26[i,j] = model.addConstr(n1[i,j] + n2[i,j] <= 2 * (1-b1[i,j])     )
+            con26[i,j] = model.addConstr(h[i,j] <= v[i,j] )
 
-con261 = {}
-for i in I:
-    for j in I:
-        if i != j:
-            con261[i,j] = model.addConstr(n1[i,j] + n2[i,j] <= 2 * (1-b2[i,j])     )
-
-# Fragile constraint
+# Determine if iem j has a suitable height for item i part four
 con27 = {}
 for i in I:
     for j in I:
         if i != j:
-            con27[i,j] = model.addConstr(s[i,j] <= (1 - fragile[j])    )
+            con27[i,j] = model.addConstr(v[i,j] <= h[i,j] * M)
 
-# rotation constraint r[i] == 1 means original position
+# Constraint based on the fact that boxes i and k share a part of their orthogonal projection part one
 con28 = {}
 for i in I:
-    con28[i] = model.addConstr(r[i] >= (1 - rotatable[i]) )
+    for j in I:
+        if i != j:
+            con28[i,j] = model.addConstr( o[i,j] == l[i,j] + l[j,i]      )
+
+# If the bottom face of box i is supported by the top face of a box j part one
+con29 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con29[i,j] = model.addConstr( (1-s[i,j]) <= h[i,j] + o[i,j]  )
+
+# If the bottom face of box i is supported by the top face of a box j part two
+con30 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con30[i,j] = model.addConstr( 2*(1-s[i,j]) >= h[i,j] + o[i,j]  )
+
+
+# guarentee that stacket items are in the same bin part one
+con31 = {}
+for i in I:
+    for j in I:
+        for b in B:
+            if i != j:
+                con31[i,j,b] = model.addConstr(p[i,b] - p[j,b] <= 1 - s[i,j] )
+
+# guarentee that stacket items are in the same bin part two
+con32 = {}
+for i in I:
+    for j in I:
+        for b in B:
+            if i != j:
+                con32[i,j,b] = model.addConstr(p[j,b] - p[i,b] <= 1 - s[i,j] )
+
+
+# Constraint certify that a box k support one vertex of the basis of box i only if this one is supported by box k, part one
+con33 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con33[i,j] = model.addConstr(b1[i,j] <= s[i,j]   )
+
+# Constraint certify that a box k support one vertex of the basis of box i only if this one is supported by box k, part one
+con34 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con34[i,j] = model.addConstr(b2[i,j] <= s[i,j]   )
+
+
+# fig 9 constraints part one
+con35 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con35[i,j] = model.addConstr(n1[i,j] + n2[i,j] <= 2 * (1-b1[i,j])     )
+
+# fig 9 constraints part one
+con36 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con36[i,j] = model.addConstr(n1[i,j] + n2[i,j] <= 2 * (1-b2[i,j])     )
+
+# Fragile constraint
+con37 = {}
+for i in I:
+    for j in I:
+        if i != j:
+            con37[i,j] = model.addConstr(s[i,j] <= (1 - fragile[j])    )
+
+# rotation constraint r[i] == 1 means original position
+con38 = {}
+for i in I:
+    con38[i] = model.addConstr(r[i] >= (1 - rotatable[i]) )
 
 # radioactive, perishable contstraint
 # mark perishable bin
-con29 = {}
+con39 = {}
 for i in I:
     for b in B:
-        con29[i,b] = model.addConstr( perishable[i] - M*(1-p[i,b])  <= per[b] )
+        con39[i,b] = model.addConstr( perishable[i] - M*(1-p[i,b])  <= per[b] )
 
 # mark radioactive bin
-con291 = {}
+con40 = {}
 for i in I:
     for b in B:
-        con291[i,b] = model.addConstr( radioactive[i] - M*(1-p[i,b])  <= rad[b]  )
+        con40[i,b] = model.addConstr( radioactive[i] - M*(1-p[i,b])  <= rad[b]  )
 
 # either or constraint
-con292 = {}
+con41 = {}
 for b in B:
-    con292[b] = model.addConstr( per[b] + rad[b] <= 1   )
+    con41[b] = model.addConstr( per[b] + rad[b] <= 1   )
 
-
-if False:
-    con99 = {}
-    con99[0] = model.addConstr(x[0] == 0)
-    con99[0] = model.addConstr(x[1] == 0)
-    con99[0] = model.addConstr(y[1] == 0)
-    #con99[0] = model.addConstr(y[2] == 0)
 
 # %%  ---- Solve ----
 model.setParam( 'OutputFlag', True) # silencing gurobi output or not
 model.setParam ('MIPGap', 0);       # find the optimal solution
-model.setParam('TimeLimit', 300)  # TimeLimit of five minutes
+model.setParam('TimeLimit', 600)  # TimeLimit of ten minutes
 model.write("output.lp")            # print the model in .lp format file
 model.optimize ()
 
@@ -549,7 +535,7 @@ if False:
         for j in I:
             print(i, j, g[i].x,b1[i,j].x, b2[i,j].x, u[i,j].x, y[i].x)
 
-if True:
+if False:
     for i in [0,1]:
         for j in I:
             print(i, j, g[i].x,b1[i,j].x, b2[i,j].x, s[i,j].x, h[i,j].x, o[i,j].x, n1[i,j].x, n2[i,j].x)
