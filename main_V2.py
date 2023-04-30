@@ -443,7 +443,7 @@ for b in B:
 # %%  ---- Solve ----
 model.setParam( 'OutputFlag', True) # silencing gurobi output or not
 model.setParam ('MIPGap', 0);       # find the optimal solution
-model.setParam('TimeLimit', 1800)  # TimeLimit of five minutes
+model.setParam('TimeLimit', 600)  # TimeLimit of ten minutes
 model.write("output.lp")            # print the model in .lp format file
 model.optimize ()
 
