@@ -445,6 +445,7 @@ model.setParam( 'OutputFlag', True) # silencing gurobi output or not
 model.setParam ('MIPGap', 0);       # find the optimal solution
 model.setParam('TimeLimit', 600)  # TimeLimit of ten minutes
 model.write("output.lp")            # print the model in .lp format file
+model.params.LogFile='bin_packing_model.log'   #print's out a model log per report instructions
 model.optimize ()
 
 if model.status == GRB.Status.OPTIMAL: # If optimal solution is found
