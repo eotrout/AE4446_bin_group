@@ -67,7 +67,7 @@ for i in I:
     for j in I:
         u[i,j] = model.addVar(vtype = GRB.BINARY, name = 'u[' + str(i) + ',' + str(j) + ']' )
 
-# r_{i} variable, 1 if it has the original orientation, 0 otherwise 
+# r_{i, L^, L} variable, 1 if the original item i is aligned with the length side of the bin
 r = {}
 for i in I:
     r[i] = model.addVar(vtype = GRB.BINARY, name = 'r[' + str(i) + ']' )
@@ -77,6 +77,7 @@ x = {}
 for i in I:
     x[i] = model.addVar(vtype = GRB.INTEGER, name = 'x[' + str(i) + ']' )
 
+# x_{i} variable, x coordinate of upper_right corner of item i, with respect to origin of bin b
 x2 = {}
 for i in I:
     x2[i] = model.addVar(vtype = GRB.INTEGER, name = 'x2[' + str(i) + ']' )
@@ -86,6 +87,7 @@ y = {}
 for i in I:
     y[i] = model.addVar(vtype = GRB.INTEGER, name = 'y[' + str(i) + ']'  )
 
+# y_{i} variable, y coordinate of upper_right corner of item i, with respect to origin of bin b
 y2 = {}
 for i in I:
     y2[i] = model.addVar(vtype = GRB.INTEGER, name = 'y2[' + str(i) + ']'  )
@@ -112,25 +114,25 @@ for i in I:
     for j in I:
         h[i,j] = model.addVar(vtype = GRB.BINARY,  name = 'h[' + str(i) + ',' + str(j) + ']' )
 
-# o i,j variable, non empty intersection
+# o i,j variable, if there is a non-empty space between items i and j 
 o = {}
 for i in I:
     for j in I:
         o[i,j] = model.addVar(vtype = GRB.BINARY,  name = 'o[' + str(i) + ',' + str(j) + ']' )
 
-# s i,j 
+# s i,j variable, if item i is supported by item j 
 s = {}
 for i in I:
     for j in I:
         s[i,j] = model.addVar(vtype = GRB.BINARY,  name = 's[' + str(i) + ',' + str(j) + ']' )          
 
-# n1 i,j variable xj smaller than xi
+# n1 i,j variable, 0 if variable xj smaller than xi, 1 otherwise
 n1 = {}
 for i in I:
     for j in I:
         n1[i,j] = model.addVar(vtype = GRB.BINARY,  name = 'n1[' + str(i) + ',' + str(j) + ']' )        
 
-# n2 i,j variable xj smaller than xi
+# n2 i,j variable, 0 if variable x2i smaller than x2j, 1 otherwise
 n2 = {}
 for i in I:
     for j in I:
@@ -142,19 +144,19 @@ for i in I:
     for j in I:
         b1[i,j] = model.addVar(vtype = GRB.BINARY, name = 'b1[' + str(i) + ',' + str(j) + ']' ) 
 
-# b^{2}_{i,j} variable, 1 if vertex 1 of item i is supported by item j
+# b^{2}_{i,j} variable, 1 if vertex 2 of item i is supported by item j
 b2 = {}
 for i in I:
     for j in I:
         b2[i,j] = model.addVar(vtype = GRB.BINARY, name = 'b2[' + str(i) + ',' + str(j) + ']' ) 
 
-# v i,j diff between boxes
+# v i,j variable,  absolute y coordinate difference between boxes
 v = {}
 for i in I:
     for j in I:
         v[i,j] = model.addVar(vtype = GRB.INTEGER, name = 'v[' + str(i) + ',' + str(j) + ']' ) 
 
-# m i,j diff between boxes
+# m i,j variable, 1 if y diff between boxes_IS THIS SUPPOSED TO BE BINARY? 
 m = {}
 for i in I:
     for j in I:
@@ -363,7 +365,7 @@ for i in I:
             con30[i,j] = model.addConstr( 2*(1-s[i,j]) >= h[i,j] + o[i,j]  )
 
 
-# guarentee that stacket items are in the same bin part one
+# guarentee that stacked items are in the same bin part one
 con31 = {}
 for i in I:
     for j in I:
@@ -371,7 +373,7 @@ for i in I:
             if i != j:
                 con31[i,j,b] = model.addConstr(p[i,b] - p[j,b] <= 1 - s[i,j] )
 
-# guarentee that stacket items are in the same bin part two
+# guarentee that stacked items are in the same bin part two
 con32 = {}
 for i in I:
     for j in I:
@@ -380,14 +382,14 @@ for i in I:
                 con32[i,j,b] = model.addConstr(p[j,b] - p[i,b] <= 1 - s[i,j] )
 
 
-# Constraint certify that a box k support one vertex of the basis of box i only if this one is supported by box k, part one
+# Constraint certify that a box j support one vertex of the basis of box i only if this one is supported by box j, part one
 con33 = {}
 for i in I:
     for j in I:
         if i != j:
             con33[i,j] = model.addConstr(b1[i,j] <= s[i,j]   )
 
-# Constraint certify that a box k support one vertex of the basis of box i only if this one is supported by box k, part one
+# Constraint certify that a box j support one vertex of the basis of box i only if this one is supported by box j, part one
 con34 = {}
 for i in I:
     for j in I:
@@ -395,14 +397,14 @@ for i in I:
             con34[i,j] = model.addConstr(b2[i,j] <= s[i,j]   )
 
 
-# fig 9 constraints part one
+# fig 9 constraints for vertices of item i if item i is smaller than item j part one
 con35 = {}
 for i in I:
     for j in I:
         if i != j:
             con35[i,j] = model.addConstr(n1[i,j] + n2[i,j] <= 2 * (1-b1[i,j])     )
 
-# fig 9 constraints part one
+# fig 9 constraints for vertices of item i if item i is smaller than item j part two
 con36 = {}
 for i in I:
     for j in I:
@@ -443,7 +445,7 @@ for b in B:
 # %%  ---- Solve ----
 model.setParam( 'OutputFlag', True) # silencing gurobi output or not
 model.setParam ('MIPGap', 0);       # find the optimal solution
-model.setParam('TimeLimit', 600)  # TimeLimit of ten minutes
+model.setParam('TimeLimit', 7200)  # TimeLimit of two hours
 model.write("output.lp")            # print the model in .lp format file
 model.params.LogFile='bin_packing_model.log'   #print's out a model log per report instructions
 model.optimize ()
