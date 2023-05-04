@@ -67,7 +67,7 @@ for i in I:
     for j in I:
         u[i,j] = model.addVar(vtype = GRB.BINARY, name = 'u[' + str(i) + ',' + str(j) + ']' )
 
-# r_{i, L^, L} variable, 1 if the original item i is aligned with the length side of the bin
+# r_{i} variable, 1 if it has the original orientation, 0 otherwise 
 r = {}
 for i in I:
     r[i] = model.addVar(vtype = GRB.BINARY, name = 'r[' + str(i) + ']' )
@@ -519,26 +519,46 @@ if model.status == GRB.Status.OPTIMAL or model.status == GRB.Status.TIME_LIMIT: 
             plt.show()               
                         
 # %%
-if False:
-     for b in B:
-          for i in I:
-               for j in I:       
-                    if i != j:
-                         print(b, i, j)
-                         print(l[i,j].x, l[i,j].x)
-                         print(u[i,j].x, u[j,i].x)
-                         print(p[i,b].x, p[j,b].x)
-                         print()
+if True:
+    bin_used = []
+    for b in B:
+        if z[b].x == 1.0:
+            bin_used.append(b) 
+    
+    bin_used
 
-if False:
-    for i in [4]:
-        for j in I:
-            print(i, j, g[i].x,b1[i,j].x, b2[i,j].x, u[i,j].x, y[i].x)
+    with open('bin_used.pickle', 'wb') as f:
+        # Dump the list into the file using pickle
+        pickle.dump(bin_used, f)
 
-if False:
-    for i in [0,1]:
-        for j in I:
-            print(i, j, g[i].x,b1[i,j].x, b2[i,j].x, s[i,j].x, h[i,j].x, o[i,j].x, n1[i,j].x, n2[i,j].x)
+    items_in_bin = {}
+    for b in B:
+        if z[b].x == 1.0:
+            items_in_bin[b] = []
+        for i in I:    
+            if p[i,b].x == 1.0:
+                items_in_bin[b].append(i)
+
+    items_in_bin
+
+    with open('items_in_bin.pickle', 'wb') as f:
+        # Dump the list into the file using pickle
+        pickle.dump(items_in_bin, f)
+
+    items_info_solution = {}
+    for i in I:    
+        items_info_solution[i] = []
+        items_info_solution[i].append(x[i].x)
+        items_info_solution[i].append(y[i].x)
+        items_info_solution[i].append(item_length[i] * (r[i].x) + item_height[i] * (1-r[i].x)   )        
+        items_info_solution[i].append(item_height[i] * (r[i].x) + item_length[i] * (1-r[i].x)   )      
+
+    items_info_solution
+
+    with open('items_info_solution.pickle', 'wb') as f:
+        # Dump the list into the file using pickle
+        pickle.dump(items_info_solution, f)
+
 
 
 # %%
